@@ -1,0 +1,1 @@
+Create A Rest API using API gateway and AWS Lambda using a serverless framework to write Dynamodb

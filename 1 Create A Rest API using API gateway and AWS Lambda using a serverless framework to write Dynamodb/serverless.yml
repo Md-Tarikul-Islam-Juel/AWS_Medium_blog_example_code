@@ -1,0 +1,78 @@
+service: serverless
+
+frameworkVersion: "3"
+useDotenv: true
+
+plugins:
+  - serverless-iam-roles-per-function
+  - serverless-add-api-key
+  - serverless-webpack
+
+package:
+  individually: true
+
+custom:
+  webpack:
+  webpackConfig: ./webpack.config.js
+  apiKeys:
+    - name: myAPIkey
+      # # no value=auto generated
+      # # value=custom key
+      # value: "jbHijLf6G8NAHKzykwuvutsrqponmlkjihgfedcba"
+      usagePlan:
+        name: "plan_myAPIkey"
+        description: "Description of first plan"
+        quota:
+          limit: 1000
+          period: DAY
+        throttle:
+          burstLimit: 100
+          rateLimit: 20
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ${opt:region, env:AWS_REGION}
+  environment:
+    STAGE: ${opt:stage,'prod'}
+    TABLE_1_NAME: ${env:TABLE_1_NAME}
+    TABLE_1_NAME_Partition_key: ${env:TABLE_1_NAME_Partition_key}
+
+resources:
+  Resources:
+    DynamoDBTable1:
+      Type: "AWS::DynamoDB::Table"
+      Properties:
+        TableName: ${self:provider.environment.TABLE_1_NAME}
+        AttributeDefinitions:
+          - AttributeName: ${self:provider.environment.TABLE_1_NAME_Partition_key}
+            AttributeType: S
+        KeySchema:
+          - AttributeName: ${self:provider.environment.TABLE_1_NAME_Partition_key}
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+
+functions:
+  Test:
+    handler: Lambda_JS/Lambda_TS/Test/main.handler
+    architecture: x86_64
+    timeout: 10
+    iamRoleStatementsName: Test_IAM_ROLE
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:DescribeTable
+          - dynamodb:Query
+          - dynamodb:Scan
+          - dynamodb:GetItem
+          - dynamodb:PutItem
+          - dynamodb:UpdateItem
+          - dynamodb:DeleteItem
+        Resource:
+          - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.TABLE_1_NAME}"
+
+    events:
+      - http:
+          path: test/push
+          method: POST
+          private: true

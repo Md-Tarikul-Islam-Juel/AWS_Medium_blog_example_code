@@ -1,0 +1,27 @@
+service: serverless
+
+frameworkVersion: "3"
+useDotenv: true
+
+plugins:
+  - serverless-iam-roles-per-function
+  - serverless-webpack
+
+package:
+  individually: true
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ${opt:region, env:AWS_REGION}
+  environment:
+    STAGE: ${opt:stage,'prod'}
+
+functions:
+  Test_1:
+    handler: Lambda_JS/Lambda_TS/Test/main.handler
+    architecture: x86_64
+    timeout: 10
+
+    events:
+      - schedule: rate(1 minute)
